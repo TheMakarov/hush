@@ -189,6 +189,7 @@ class HCIFeed:
     def __init__(self,root,address_provider):
         self.path=str(Path(root)/'.runtime'/'hci-feed.sock');self.address_provider=address_provider
         self.lock=threading.RLock();self.frames=deque(maxlen=240);self.rates={};self.sequence=0;self.last=None;self.started=time.time()
+        self.on_packet=None
         self.stop=threading.Event();self.sock=socket.socket(socket.AF_UNIX,socket.SOCK_DGRAM)
         try:os.unlink(self.path)
         except FileNotFoundError:pass
@@ -212,6 +213,7 @@ class HCIFeed:
                     key='tx' if data['direction']=='TX' else 'rx';bucket[key+'_bytes']+=len(raw);bucket[key+'_packets']+=1
                     for old in list(self.rates):
                         if old<second-120:del self.rates[old]
+                if self.on_packet:self.on_packet(frame)
             except (socket.timeout,json.JSONDecodeError,ValueError,TypeError,KeyError):continue
             except OSError:break
         self.sock.close()

@@ -19,6 +19,8 @@ from urllib.parse import urlsplit
 
 import sony_protocol as sony
 from telemetry import WireCapture, TappedSocket, Telemetry, HCIFeed
+from sonification import RenderStore
+from packet_audio import PacketTape
 
 ROOT = Path(__file__).resolve().parent
 # Keep runtime artifacts beside the app; never write into the user's home config.
@@ -43,6 +45,7 @@ SCENES = {
     "aware": [("nc", "ambient-sound"), ("ambient-level", 12), ("focus-on-voice", True)],
     "natural": [("nc", "off")],
 }
+MUSIC_EQ = {"parade-hall": {"name": "Parade Hall", "clear_bass": 2, "bands": [-2, 1, 2, 2, 1]}}
 
 
 class ObservedLink(sony.Link):
@@ -102,6 +105,14 @@ class Controller:
         self.revision = 0
         self.wire = WireCapture()
         self.connections = 0
+        self.eq_backup_path = ROOT / ".runtime" / "eq-before-music.json"
+        self.eq_backup = None
+        try:
+            previous = json.loads(self.eq_backup_path.read_text())
+            if previous.get("preset") in sony.EQ_PRESETS and isinstance(previous.get("bands"), list) and len(previous["bands"])==5:
+                self.eq_backup = previous
+        except (OSError, ValueError, TypeError):
+            pass
         self.thread = threading.Thread(target=self.run, daemon=True, name="sony-bluetooth")
 
     def publish(self, state):
@@ -125,7 +136,8 @@ class Controller:
         with self.lock:
             return {"state": copy.deepcopy(self.state), "phase": self.phase, "updated": self.updated,
                     "events": list(reversed(self.events[-30:])), "packets": list(reversed(self.packets[-40:])),
-                    "revision": self.revision, "server_time": time.time()}
+                    "revision": self.revision, "server_time": time.time(),
+                    "eq_restore_available": self.eq_backup is not None, "music_eq_presets": MUSIC_EQ}
 
     def connect(self):
         with self.lock:
@@ -228,6 +240,30 @@ class Controller:
                 except Exception as exc:
                     raise ValueError(f"Scene incomplete; applied: {', '.join(done) or 'none'}. {exc}") from exc
                 self.event({"focus": "Deep work", "aware": "Stay aware", "natural": "Natural"}[scene] + " scene confirmed", "change")
+            elif action == "music-eq":
+                preset = MUSIC_EQ.get(job.get("preset"))
+                if preset is None:
+                    raise ValueError("Unknown music EQ preset")
+                state = self.link.state
+                if state.get("eq_bass") is None or state.get("eq_bands") is None:
+                    raise ValueError("Read the headset EQ before applying a music preset.")
+                if self.eq_backup is None:
+                    self.eq_backup = {"preset":state["eq_preset"], "bass":state["eq_bass"], "bands":list(state["eq_bands"])}
+                    fd = os.open(self.eq_backup_path, os.O_WRONLY|os.O_CREAT|os.O_TRUNC|os.O_NOFOLLOW, 0o600)
+                    with os.fdopen(fd,"w") as file:
+                        json.dump(self.eq_backup,file)
+                self.set_verified("eq-bands", ",".join(map(str,[preset["clear_bass"],*preset["bands"]])))
+                self.event(preset["name"]+" EQ confirmed", "change")
+            elif action == "restore-music-eq":
+                previous = self.eq_backup
+                if previous is None:
+                    raise ValueError("No previous EQ was saved.")
+                self.set_verified("eq-bands", ",".join(map(str,[previous["bass"],*previous["bands"]])))
+                if previous["preset"] != "manual":
+                    self.set_verified("eq",previous["preset"])
+                if self.link.state["eq_bass"]!=previous["bass"] or self.link.state["eq_bands"]!=previous["bands"]:
+                    raise ValueError("The previous preset was selected, but its curve differs from the saved readback.")
+                self.event("Previous EQ restored and confirmed", "change")
             else:
                 raise ValueError("Unknown action")
 
@@ -294,16 +330,18 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
-    def respond(self, status, data, mime="application/json"):
+    def respond(self, status, data, mime="application/json", filename=None):
         body = json.dumps(data).encode() if mime == "application/json" else data
         self.send_response(status)
         self.send_header("Content-Type", mime)
         self.send_header("Content-Length", str(len(body)))
+        if filename:
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
-        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
+        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
         self.end_headers()
         self.wfile.write(body)
 
@@ -325,7 +363,27 @@ class Handler(BaseHTTPRequestHandler):
             if inventory.exists():
                 data["inventory"] = json.loads(inventory.read_text())
             self.respond(200, data)
-        elif path in ("/", "/index.html", "/style.css", "/nerd.css", "/app.js", "/nerd.js", "/headphones.svg", "/icon.svg", "/LICENSE"):
+        elif path == "/api/sample-capture":
+            self.respond(200, json.loads((ROOT / "examples" / "xm4-control.json").read_text()))
+        elif path == "/api/tape/state":
+            self.respond(200,self.server.tape.snapshot())
+        elif path.startswith("/api/tape/"):
+            parts=path.split("/")
+            resource=self.server.tape.resource(parts[3],parts[4]) if len(parts)==5 else None
+            if resource is None:self.respond(404,{"error":"Recording unavailable"})
+            else:
+                body,mime=resource
+                self.respond(200,json.loads(body) if mime=="application/json" else body,mime,filename="hush-packet-"+parts[4])
+        elif path.startswith("/api/sonifications/"):
+            parts = path.split("/")
+            render = self.server.sonifications.get(parts[3]) if len(parts)==5 else None
+            if render is None or parts[4] not in ("audio.wav", "score.json"):
+                self.respond(404, {"error": "That render expired. Compose another piece."})
+            elif parts[4] == "audio.wav":
+                self.respond(200, render["audio"], "audio/wav", f'hush-{render["score"]["preset"]}.wav')
+            else:
+                self.respond(200, render["score"], filename=f'hush-{render["score"]["preset"]}.score.json')
+        elif path in ("/", "/index.html", "/style.css", "/nerd.css", "/studio.css", "/app.js", "/nerd.js", "/studio.js", "/tape.js", "/headphones.svg", "/icon.svg", "/LICENSE"):
             name = "index.html" if path == "/" else path[1:]
             mime = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml"}.get(Path(name).suffix, "text/plain; charset=utf-8")
             self.respond(200, (ROOT / name).read_bytes(), mime)
@@ -345,18 +403,22 @@ class Handler(BaseHTTPRequestHandler):
         if not hmac.compare_digest(self.headers.get("X-Hush-Token", ""), self.server.token):
             self.respond(403, {"error": "Refresh Hush to authorize this request"})
             return
-        if self.path != "/api/control":
+        if self.path not in ("/api/control", "/api/sonify", "/api/tape/start", "/api/tape/stop"):
             self.respond(404, {"error": "Not found"})
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if not 0 < length <= 2048:
+            limit = 1048576 if self.path == "/api/sonify" else 2048
+            if not 0 < length <= limit:
                 raise ValueError("Invalid request size")
             self.connection.settimeout(5)
             job = json.loads(self.rfile.read(length))
             if not isinstance(job, dict):
                 raise ValueError("Expected an object")
-            result = self.server.controller.submit(job)
+            if self.path == "/api/tape/start":result={"ok":True,**self.server.tape.start(job.get("duration",10))}
+            elif self.path == "/api/tape/stop":result={"ok":True,**self.server.tape.finish()}
+            elif self.path == "/api/sonify":result=self.server.sonifications.create(job)
+            else:result=self.server.controller.submit(job)
             self.respond(200 if result["ok"] else 409, result)
         except (ValueError, queue.Full) as exc:
             self.respond(400, {"ok": False, "error": str(exc) or "Device queue is full"})
@@ -374,10 +436,13 @@ def main():
     server.daemon_threads = True
     server.controller = controller
     server.token = secrets.token_hex(32)
+    server.sonifications = RenderStore()
     server.allowed_hosts = {f"127.0.0.1:{args.port}", f"localhost:{args.port}"}
     address_provider=lambda: controller.snapshot()["state"].get("address")
     server.telemetry=Telemetry(address_provider,controller.event)
     server.hci=HCIFeed(ROOT,address_provider)
+    server.tape=PacketTape(server.hci.snapshot,lambda:server.telemetry.snapshot().get('audio',{}))
+    server.hci.on_packet=server.tape.feed
     server.telemetry.thread.start()
     server.hci.thread.start()
     controller.thread.start()

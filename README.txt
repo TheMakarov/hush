@@ -28,6 +28,39 @@ power, encryption/authentication, AFH channels and the supervision timeout.
 Read-only battery and audio-preference heartbeats run every two seconds.
 Keys 1 / 2 / 3 select ANC / ambient / off when a form control is not focused.
 
+PARADE HALL / MARCH EQ
+Sound includes a locally named preset intended as a starting point for brass
+and snare-heavy marches: Clear Bass +2, 400 Hz -2, 1 kHz +1, 2.5 kHz +2,
+6.3 kHz +2, 16 kHz +1. It is a taste choice, not a measured universal optimum.
+Before its first application, Hush privately saves the previous headset preset
+and full curve in .runtime/eq-before-music.json. Restore previous EQ reads the
+original curve back after restoring it. These local preferences are Git-ignored.
+
+PACKET STUDIO
+Studio turns real captured bytes into newly synthesized music:
+  Packet Garden: C major pentatonic bells, left/right conversation, short echo.
+  Modem Dreams: selected payload bytes become custom two-tone FSK (560/900 Hz).
+  Wire Drums: outgoing packets kick, incoming packets clap, ACKs become hats.
+Choose a live capture, the packet bench selection, the included saved real XM4
+capture, or import a JSON export. Compose 8/16/32 seconds, fit timestamps to a
+groove at 60–160 BPM or preserve their relative spacing, then play/download WAV.
+The score view traces each event to a frame ID, wire-byte hash and payload byte.
+Download score JSON for source packets and the full recipe. All renders are
+local, deterministic, stereo 16-bit PCM at 24 kHz. They are sonifications,
+not recovered audio recordings. Rendering never sends settings to the headset.
+
+Listen live previews new packet arrivals with short synthesized tones at the
+chosen listening level. Leaving Studio stops live synthesis and pauses playback.
+The browser starts sound only after a Play/Listen action. In-memory renders
+expire after 20 minutes or when displaced by four newer renders; downloaded
+files and the browser's loaded audio remain yours.
+
+Offline rendering (no connected headphones needed):
+  python3 sonification.py examples/xm4-control.json --output sonifications/garden.wav
+  python3 sonification.py examples/xm4-control.json --preset modem --output sonifications/modem.wav
+  python3 sonification.py examples/xm4-control.json --preset drums --output sonifications/drums.wav
+Each command also writes a .score.json sidecar. Runtime exports are Git-ignored.
+
 Changes are read back before success is reported. The app reconnects when its
 Bluetooth control link drops, and listens for the earcup button's notifications.
 A disconnected screen shows last-known settings with controls disabled.

@@ -1,0 +1,230 @@
+{
+  "source": "Real WH-1000XM4 control traffic captured locally on 2026-11-26",
+  "kind": "saved control capture, not a live device simulation",
+  "frames": [
+    {
+      "id": 549,
+      "time": 1795695399.9284282,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 01 00 00 00 00 00 01 3C"
+    },
+    {
+      "id": 548,
+      "time": 1795695399.9282773,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 0C 01 00 00 00 04 E7 01 00 00 F9 3C"
+    },
+    {
+      "id": 547,
+      "time": 1795695399.917235,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 01 01 00 00 00 00 02 3C"
+    },
+    {
+      "id": 546,
+      "time": 1795695399.9062724,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 01 01 00 00 00 00 02 3C"
+    },
+    {
+      "id": 545,
+      "time": 1795695399.9062338,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 0C 00 00 00 00 04 11 00 64 00 85 3C"
+    },
+    {
+      "id": 544,
+      "time": 1795695399.901318,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 0C 00 00 00 00 02 E6 01 F5 3C"
+    },
+    {
+      "id": 543,
+      "time": 1795695399.901233,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 01 00 00 00 00 00 01 3C"
+    },
+    {
+      "id": 542,
+      "time": 1795695399.8772714,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 0C 01 00 00 00 02 10 00 1F 3C"
+    },
+    {
+      "id": 541,
+      "time": 1795695397.7952907,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 01 00 00 00 00 00 01 3C"
+    },
+    {
+      "id": 540,
+      "time": 1795695397.7952523,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 0C 01 00 00 00 04 E7 01 00 00 F9 3C"
+    },
+    {
+      "id": 539,
+      "time": 1795695397.7842379,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 01 01 00 00 00 00 02 3C"
+    },
+    {
+      "id": 538,
+      "time": 1795695397.7462718,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 01 01 00 00 00 00 02 3C"
+    },
+    {
+      "id": 537,
+      "time": 1795695397.746227,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 0C 00 00 00 00 04 11 00 64 00 85 3C"
+    },
+    {
+      "id": 536,
+      "time": 1795695397.7422864,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 0C 00 00 00 00 02 E6 01 F5 3C"
+    },
+    {
+      "id": 535,
+      "time": 1795695397.7422216,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 01 00 00 00 00 00 01 3C"
+    },
+    {
+      "id": 534,
+      "time": 1795695397.7284412,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 0C 01 00 00 00 02 10 00 1F 3C"
+    },
+    {
+      "id": 533,
+      "time": 1795695395.6613212,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 01 00 00 00 00 00 01 3C"
+    },
+    {
+      "id": 532,
+      "time": 1795695395.6612532,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 0C 01 00 00 00 04 E7 01 00 00 F9 3C"
+    },
+    {
+      "id": 531,
+      "time": 1795695395.635315,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 01 01 00 00 00 00 02 3C"
+    },
+    {
+      "id": 530,
+      "time": 1795695395.6122577,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 01 01 00 00 00 00 02 3C"
+    },
+    {
+      "id": 529,
+      "time": 1795695395.612221,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 0C 00 00 00 00 04 11 00 64 00 85 3C"
+    },
+    {
+      "id": 528,
+      "time": 1795695395.6084807,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 0C 00 00 00 00 02 E6 01 F5 3C"
+    },
+    {
+      "id": 527,
+      "time": 1795695395.6084054,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 01 00 00 00 00 00 01 3C"
+    },
+    {
+      "id": 526,
+      "time": 1795695395.5872693,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 0C 01 00 00 00 02 10 00 1F 3C"
+    },
+    {
+      "id": 525,
+      "time": 1795695393.5172825,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 01 00 00 00 00 00 01 3C"
+    },
+    {
+      "id": 524,
+      "time": 1795695393.5172284,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 0C 01 00 00 00 04 E7 01 00 00 F9 3C"
+    },
+    {
+      "id": 523,
+      "time": 1795695393.493596,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 01 01 00 00 00 00 02 3C"
+    },
+    {
+      "id": 522,
+      "time": 1795695393.491305,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 01 01 00 00 00 00 02 3C"
+    },
+    {
+      "id": 521,
+      "time": 1795695393.4912438,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 0C 00 00 00 00 04 11 00 64 00 85 3C"
+    },
+    {
+      "id": 520,
+      "time": 1795695393.4753304,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 0C 00 00 00 00 02 E6 01 F5 3C"
+    },
+    {
+      "id": 519,
+      "time": 1795695393.4752629,
+      "direction": "RX",
+      "source": "MDR",
+      "raw": "3E 01 00 00 00 00 00 01 3C"
+    },
+    {
+      "id": 518,
+      "time": 1795695393.4487817,
+      "direction": "TX",
+      "source": "MDR",
+      "raw": "3E 0C 01 00 00 00 02 10 00 1F 3C"
+    }
+  ]
+}

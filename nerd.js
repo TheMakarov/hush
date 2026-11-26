@@ -71,6 +71,7 @@ async function pollNerd(){
   try{
     const response=await fetch('/api/nerd',{signal:AbortSignal.timeout(5000)});if(!response.ok)throw new Error('Metrics unavailable');
     nerdData=await response.json();$('#callWarning').hidden=!nerdData.telemetry.audio.call_mode;renderNerd();
+    if(typeof packetStudioIngest==='function')packetStudioIngest(nerdData);
   }catch(error){if(!$('#nerd').hidden)$('#nerdLive').textContent='LOCAL METRICS OFFLINE';}
   finally{setTimeout(pollNerd,2000);}
 }

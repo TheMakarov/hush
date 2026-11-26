@@ -18,9 +18,12 @@ function showToast(message, error=false) {
 function openTab(name) {
   $$('.tab-panel').forEach(el => {el.hidden = el.id !== name;});
   $$('.nav').forEach(el => {const active=el.dataset.tab===name;el.classList.toggle('active',active);if(active)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');});
-  $('#pageTitle').textContent = {control:'Less noise. More you.',equalizer:'Good sound is personal.',activity:'The quiet has a story.',lab:'A curious little machine.',nerd:'The numbers behind the sound.'}[name];
+  $('#pageTitle').textContent = {control:'Less noise. More you.',equalizer:'Good sound is personal.',activity:'The quiet has a story.',lab:'A curious little machine.',nerd:'The numbers behind the sound.',studio:'Your audio, straight from the packets.'}[name];
   if(name==='lab')loadLab();
   if(name==='nerd'&&typeof renderNerd==='function')renderNerd();
+  if(typeof setStudioActive==='function')setStudioActive(name==='studio');
+  if(name==='studio'&&typeof refreshTape==='function')refreshTape();
+  if(name!=='studio'&&typeof tapeAudio!=='undefined')tapeAudio.pause();
 }
 $$('[data-tab]').forEach(el=>el.addEventListener('click',()=>openTab(el.dataset.tab)));
 $$('[data-open-tab]').forEach(el=>el.addEventListener('click',()=>openTab(el.dataset.openTab)));
@@ -43,6 +46,8 @@ function renderEnabled() {
   $('#eqPreset').disabled=!enabled||state.eq_preset==null;
   $$('.eq-band input').forEach(el=>{el.disabled=!enabled||state.eq_bands==null;});
   $('#applyEq').disabled=!enabled||!eqDirty;
+  $('#applyParadeEq').disabled=!enabled||state.eq_bands==null;
+  $('#restoreMusicEq').disabled=!enabled||!snapshot?.eq_restore_available;
   $('#refresh').disabled=busy;
   $('#reconnect').disabled=busy;
   document.body.classList.toggle('busy',busy);
@@ -80,6 +85,10 @@ function render(data) {
     [s.eq_bass,...(s.eq_bands||[null,null,null,null,null])].forEach((value,i)=>{if(value!=null){$(`#eqBand${i}`).value=value;$(`#eqValue${i}`).textContent=value>0?`+${value}`:String(value);}});
   }
   $('#eqCurrent').textContent=(s.eq_preset||'Reading EQ').replaceAll('-',' ').toUpperCase();
+  const parade=s.eq_bass===2&&JSON.stringify(s.eq_bands)===JSON.stringify([-2,1,2,2,1]);
+  $('#applyParadeEq').textContent=parade?'Parade Hall is active':'Apply Parade Hall';
+  $('#applyParadeEq').setAttribute('aria-pressed',String(parade));
+  if(parade)$('#eqCurrent').textContent='PARADE HALL';
   $('#syncText').textContent=connected?'SYNCED WITH YOUR HEADPHONES':data.phase==='connecting'?'CONNECTING TO HEADPHONES':'WAITING FOR HEADPHONES';
   renderEnabled();renderLogs(data);
 }
@@ -102,6 +111,8 @@ $('#ambient').addEventListener('input',()=>{$('#ambientValue').textContent=$('#a
 $('#ambient').addEventListener('change',()=>command({action:'set',key:'ambient-level',value:Number($('#ambient').value)},'Ambient level confirmed'));
 $('#eqPreset').addEventListener('change',async()=>{eqDirty=false;await command({action:'set',key:'eq',value:$('#eqPreset').value},'Sony EQ preset confirmed');});
 $('#applyEq').addEventListener('click',async()=>{const values=$$('.eq-band input').map(el=>Number(el.value));const ok=await command({action:'set',key:'eq-bands',value:values.join(',')},'Your custom mix is saved on the XM4');if(ok){eqDirty=false;$('#eqHelp').textContent='Your mix is saved on the headphones.';render(snapshot);}});
+$('#applyParadeEq').addEventListener('click',async()=>{eqDirty=false;await command({action:'music-eq',preset:'parade-hall'},'Parade Hall EQ · confirmed by your XM4');});
+$('#restoreMusicEq').addEventListener('click',async()=>{eqDirty=false;await command({action:'restore-music-eq'},'Your previous EQ is restored');});
 $('#refresh').addEventListener('click',()=>command({action:'refresh'},'Headset settings refreshed'));
 $('#reconnect').addEventListener('click',()=>command({action:'reconnect'},'Connected to your XM4'));
 document.addEventListener('keydown',event=>{if(event.ctrlKey||event.altKey||event.metaKey||['INPUT','SELECT','TEXTAREA','BUTTON'].includes(event.target.tagName))return;const mode={'1':'noise-cancelling','2':'ambient-sound','3':'off'}[event.key];if(mode&&!busy&&snapshot?.state.connected)command({action:'set',key:'nc',value:mode});});
