@@ -18,3 +18,10 @@ https://github.com/randwardatake/wh1000xm4-anc-optimizer/blob/main/docs/HARDWARE
 The probe validates observed reply metadata and implements no write commands.
 
 Independent project. Not affiliated with Sony.
+
+Real packet-audio reconstruction uses standard HCI/L2CAP/RTP/A2DP packet layouts
+and the installed FFmpeg SBC decoder. Reference implementations/documentation:
+https://github.com/PipeWire/pipewire/blob/master/spa/plugins/bluez5/a2dp-codec-sbc.c
+https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/sbcenc.c
+https://www.bluetooth.com/specifications/specs/advanced-audio-distribution-profile-1-4-1/
+FFmpeg is invoked as a separate installed program; its source is not vendored.

@@ -11,6 +11,9 @@ import time
 import unittest
 import tempfile
 import wave
+import math
+import subprocess
+import shutil
 import urllib.error
 import urllib.request
 from http.server import ThreadingHTTPServer
@@ -20,6 +23,7 @@ import sony_protocol as sony
 import probe
 from telemetry import WireCapture
 from sonification import RenderStore, compose, build_score
+from packet_audio import A2dpDecoder, sbc_info, pcm_effect, PacketTape
 
 
 class EchoDemo(sony.DemoLink):
@@ -205,6 +209,54 @@ class MusicEqTests(unittest.TestCase):
             controller.execute({'action':'restore-music-eq'})
             self.assertEqual(controller.state['eq_bass'],before['eq_bass'])
             self.assertEqual(controller.state['eq_bands'],before['eq_bands'])
+
+
+@unittest.skipUnless(shutil.which('ffmpeg'),'FFmpeg required for real SBC decoding')
+class PacketAudioTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pcm=array('h')
+        for index in range(4800):
+            value=round(5000*math.sin(2*math.pi*440*index/48000));pcm.extend((value,value))
+        result=subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-f','s16le','-ar','48000','-ac','2','-i','pipe:0','-c:a','sbc','-b:a','328k','-f','sbc','pipe:1'],input=pcm.tobytes(),capture_output=True,check=True)
+        cls.frames=[];offset=0
+        while offset<len(result.stdout):
+            size=sbc_info(result.stdout[offset:])['frame_bytes'];cls.frames.append(result.stdout[offset:offset+size]);offset+=size
+
+    def packet(self,sequence,frames,fragment=False):
+        rtp=struct.pack('>BBHII',0x80,96,sequence,sequence*640,1)+bytes([len(frames)])+b''.join(frames)
+        l2=struct.pack('<HH',len(rtp),0x47)+rtp
+        chunks=[l2[:31],l2[31:]] if fragment else [l2]
+        return [{'id':sequence*2+i,'time':sequence/100,'direction':'TX','label':'HCI ACL','size':len(chunk)+4,'raw':(struct.pack('<HH',51|((2 if i==0 else 1)<<12),len(chunk))+chunk).hex()} for i,chunk in enumerate(chunks)]
+
+    def test_real_sbc_reassembly_fragmentation_and_pcm_decode(self):
+        decoder=A2dpDecoder()
+        for index in range(4):
+            for packet in self.packet(index,self.frames[index*5:(index+1)*5],fragment=index==1):decoder.feed(packet)
+        encoded,pcm,wav,receipt=decoder.result()
+        self.assertEqual(encoded,b''.join(self.frames[:20]))
+        self.assertEqual(receipt['rtp_packets'],4);self.assertEqual(receipt['sbc_frames'],20)
+        self.assertEqual(receipt['rtp_capture_gaps'],0)
+        with wave.open(io.BytesIO(wav),'rb') as reader:
+            self.assertEqual(reader.getframerate(),48000);self.assertEqual(reader.getnchannels(),2)
+        self.assertTrue(any(pcm));self.assertEqual(hashlib.sha256(wav).hexdigest(),receipt['wav_sha256'])
+
+    def test_sequence_gaps_duplicates_and_non_audio_are_reported(self):
+        decoder=A2dpDecoder()
+        decoder.feed({'direction':'RX','label':'HCI ACL','raw':'00'})
+        packets=self.packet(65535,self.frames[:5])
+        decoder.feed(packets[0]);decoder.feed(packets[0])
+        for packet in self.packet(1,self.frames[5:10]):decoder.feed(packet)
+        _,_,_,receipt=decoder.result()
+        self.assertEqual(receipt['rtp_packets'],2)
+        self.assertEqual(receipt['rtp_capture_gaps'],1)
+
+    def test_effects_preserve_stereo_frames_and_capture_needs_helper(self):
+        pcm=array('h',[1,2,3,4,5,6]).tobytes()
+        reversed_values=array('h');reversed_values.frombytes(pcm_effect(pcm,48000,2,'reverse'))
+        self.assertEqual(list(reversed_values),[5,6,3,4,1,2])
+        tape=PacketTape(lambda:{'active':False},lambda:{'codec':'sbc_xq'})
+        with self.assertRaisesRegex(ValueError,'helper'):tape.start(5)
 
 
 if __name__=='__main__':unittest.main()

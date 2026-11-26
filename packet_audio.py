@@ -127,6 +127,7 @@ class A2dpDecoder:
                  'invalid_acl_packets':self.invalid,'encoded_bytes':len(encoded),
                  'encoded_bitrate_kbps':len(encoded)*8/duration/1000,
                  'encoded_sha256':hashlib.sha256(encoded).hexdigest(),'wav_sha256':hashlib.sha256(wav).hexdigest(),
+                 'decode_warnings':process.stderr.decode('utf-8','replace')[:1000],
                  'note':'This is decoded transmitted SBC audio, before the headphone DSP/EQ. RTP gaps are capture gaps, not measured RF loss; missing audio is not invented.',
                  'packets':stream['receipts']}
         return encoded,pcm,wav,receipt

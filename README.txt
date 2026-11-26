@@ -11,6 +11,8 @@ For a different port: python3 server.py --port 8766
 
 REQUIREMENTS
 Linux, Python 3.10+ with Bluetooth sockets, and BlueZ's bluetoothctl.
+Nerd metrics use PipeWire, pactl, wpctl and libbluetooth. Real packet audio
+playback additionally needs FFmpeg with its SBC decoder (available on this machine).
 No pip packages, npm install, cloud account, or build step.
 Pair/connect the over-ear WH-1000XM4 in your normal Bluetooth settings first.
 This app implements the WH-1000XM4's MDR v1 protocol, not the WF earbuds or XM5.
@@ -37,7 +39,34 @@ and full curve in .runtime/eq-before-music.json. Restore previous EQ reads the
 original curve back after restoring it. These local preferences are Git-ignored.
 
 PACKET STUDIO
-Studio turns real captured bytes into newly synthesized music:
+The primary Studio recorder reconstructs actual audio sent to the XM4:
+  1. Start the optional headset-only HCI helper shown in Nerd.
+  2. Play audio on this computer through the XM4 using A2DP SBC / SBC-XQ.
+  3. Open Studio and record 5, 10 or 20 seconds of real packets.
+  4. Play/download the decoded WAV, exact extracted SBC stream, raw packet JSON,
+     and a receipt with RTP sequence numbers, source frame IDs and hashes.
+
+The pipeline reassembles HCI ACL TX fragments into L2CAP PDUs, removes RTP/SBC
+transport headers, validates SBC frame boundaries and invokes the system FFmpeg
+decoder. No microphone or PipeWire loopback source supplies the recording.
+The resulting WAV contains the decoded transmitted audio before the headset's
+DSP/EQ. It is the stream sent by this computer, not a recording of the earcups.
+AAC, LDAC and HFP/microphone decoding are not implemented. Capture gaps and
+decoder warnings are reported in the receipt; missing audio is not invented.
+
+Original audio, reverse tape, and orbit echo operate on the actual decoded PCM.
+The original encoded SBC bytes remain available. Recordings are bounded to
+20 seconds / 8 MiB of captured data, two clips are retained in memory, and no
+recorded audio is committed to Git. Save downloads you want to keep before
+restarting the server. Capturing is passive and does not change audio routing.
+
+Verified on this XM4: 10.00 seconds reconstructed from 750 RTP media packets,
+3,750 SBC frames; 48 kHz dual-channel stereo, bitpool 39, 504 kb/s, zero RTP
+sequence gaps and no decoder warnings. This measures the host-side capture;
+it does not measure over-the-air loss or the headset's acoustic output.
+
+The separate, collapsible Byte instruments section turns captured bytes into
+newly synthesized music:
   Packet Garden: C major pentatonic bells, left/right conversation, short echo.
   Modem Dreams: selected payload bytes become custom two-tone FSK (560/900 Hz).
   Wire Drums: outgoing packets kick, incoming packets clap, ACKs become hats.
@@ -91,8 +120,9 @@ This passive helper filters by the headset's handles before sending packets
 over a mode-0600 local Unix socket. No persistent capabilities are installed,
 no raw capture is written to disk, and Ctrl+C stops it. HCI is host/controller
 traffic: radio retransmissions, loss rate and acoustic delay are not observable.
-This privileged capture path has not been run in this session; the OS denied
-HCI monitor access to the regular user. Radio queries work without that capture.
+The regular user cannot open the HCI monitor channel. The user-started privileged
+helper and real SBC-XQ reconstruction have now been verified on this headset.
+Radio queries and Sony control-frame capture also work without that helper.
 
 PRIVACY & LOCAL ACCESS
 The service binds only to 127.0.0.1. It checks Host/Origin and a per-run token
