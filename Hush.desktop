@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Hush — XM4 Control Room
+Comment=Local Sony WH-1000XM4 sound control
+Exec=/home/makarov/Documents/Codex/2026-11-26/hey/outputs/hush/launch.sh
+Icon=/home/makarov/Documents/Codex/2026-11-26/hey/outputs/hush/icon.svg
+Terminal=true
+Categories=AudioVideo;Audio;
+StartupNotify=false

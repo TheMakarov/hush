@@ -1,0 +1,20 @@
+Hush is distributed under AGPL-3.0-or-later; see LICENSE.
+
+sony_protocol.py is an unmodified copy of bin/sony-headphones by Gabriel Aramburu:
+https://github.com/gabamnml/omarchy-sony-headphones
+Upstream commit recorded when downloaded:
+5ed5bbbf9740fad16046a6ab49afe26036f0733b
+Copyright (C) 2026 Gabriel Aramburu; AGPL-3.0-or-later.
+
+Sony MDR payload semantics were reverse engineered by Gadgetbridge;
+framing was cross-checked by upstream against SonyHeadphonesClient (MIT).
+Hush adds the loopback HTTP bridge, confirmed readback, interface, diagnostics,
+read-only storage probe, and tests. It uses Python's standard library only.
+
+RACE/NVDM framing and storage-layout research:
+https://github.com/randwardatake/wh1000xm4-anc-optimizer
+https://github.com/randwardatake/wh1000xm4-anc-optimizer/blob/main/tools/backup_nvdm.py
+https://github.com/randwardatake/wh1000xm4-anc-optimizer/blob/main/docs/HARDWARE_AND_NVDM.md
+The probe validates observed reply metadata and implements no write commands.
+
+Independent project. Not affiliated with Sony.

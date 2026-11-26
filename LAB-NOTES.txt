@@ -1,0 +1,73 @@
+XM4 LAB NOTES — 26 NOVEMBER 2026
+
+OBSERVED ON YOUR HEADSET
+Model: WH-1000XM4, firmware 3.0.1.
+Sony MDR sound control: service 96cc203e-5068-46ad-b32d-e316f5e069ba, channel 9.
+Sony Serial MC: service b9b213ce-eeab-49e4-8fd9-aa478ed1b26b, channel 11.
+Airoha RACE: service 8901dfa8-5c7e-4d8f-9f0c-c2b70683f5f0, channel 21.
+These channels were resolved through SDP; they were not guessed or brute-forced.
+
+RACE PAGE_READ (0x0403), logical storage_type=1, returned a real NVDM store.
+Saved locally: backups/xm4-nvdm-2026-11-26.bin, exactly 524,288 bytes.
+All 128 blocks have NVDM headers. Offline parsing validated 4,937 records,
+found zero invalid records, and resolved 229 active keys, including 68 under
+config. SHA-256 is in the adjacent sidecar and sanitized JSON reports.
+This validation does not demonstrate that restoring the store would work.
+
+Interesting key names include optimizer_coeff, nc_is_optimized,
+touch_panel_disabled, test_forced_touch_sensor, sound_position, voice_language,
+power_saving, codec_ldac, codec_aptx, and codec_aptx_hd. Those names are facts
+about storage. Their meaning, mutability, and useful behavior are not proven.
+In particular, generic aptX keys do not establish working aptX support.
+Four CXD90050 ALIGN_* trim keys and DNC/howling_pre_notice_off are present.
+No raw calibration or test setting was modified.
+
+The backup includes device identity and pairing records. It stays local with
+mode 0600 and is excluded from Git. The UI never exposes their values, and the
+HTTP server cannot serve the raw backup directory.
+
+WHAT THIS MEANS FOR FIRMWARE EXTRACTION
+Confirmed here: reading the logical NVDM settings/calibration store.
+Not tested here: a complete physical flash, bootloader, or running firmware dump.
+A single physical-flash page-zero read (storage_type=0) was attempted and
+refused by the headset with status 0x03. We did not enter update mode or try
+to bypass that restriction. Logical NVDM reads still succeeded independently.
+Do not treat a 512 KiB NVDM backup as a full firmware recovery image.
+The research repository reports offline decryption/decompression of downloaded
+official firmware images; that is separate from extracting this device's flash.
+
+WHAT THIS MEANS FOR FLASHING / “BURNING”
+The community toolkit below reports real WH-1000XM4 flashing in both directions
+between official 2.5.0 and 3.0.1 images. Its flasher allowlists known official
+images by SHA-256 and uses the device's firmware-update path. This is a
+maintainer report; no firmware write or downgrade was performed on your unit.
+Sony's currently listed 3.0.1 release improves security. A downgrade can remove
+security fixes, and interrupted or unsuitable writes can make the headset unusable.
+Before an actual flash, establish the exact image, model/region compatibility,
+hash, power/link conditions, and a recovery route; NVDM alone does not provide one.
+
+Arbitrary custom firmware installation is not established by the evidence we
+reviewed. Experimental persistent ANC coefficient injection is disabled upstream
+on real hardware because its storage assumptions were contradicted by dumps.
+Claims that a downgrade improves ANC are subjective reports, not measurements.
+
+READ-ONLY SCOPE OF THIS INVESTIGATION
+Used: SDP discovery, PAGE_READ on logical NVDM, and one rejected physical-flash
+page-zero PAGE_READ. The physical flash test discarded any returned data.
+Not used: FOTA update-mode handshake, flash erase/program, RAM writes, test-mode
+toggles, microphone capture, calibration changes, or reboot commands.
+
+SOURCES
+Sony firmware 3.0.1 release notes:
+https://www.sony.com/electronics/support/software/00261613
+
+Community toolkit and firmware workflow:
+https://github.com/randwardatake/wh1000xm4-anc-optimizer
+
+Evidence ledger (separates device-verified, reported, unverified and contradicted):
+https://github.com/randwardatake/wh1000xm4-anc-optimizer/blob/main/docs/STATUS.md
+
+Storage format and offline image-analysis notes:
+https://github.com/randwardatake/wh1000xm4-anc-optimizer/blob/main/docs/HARDWARE_AND_NVDM.md
+
+The local probe-report.json and inventory-report.json record this unit's results.

@@ -1,0 +1,8 @@
+__pycache__/
+.runtime/
+backups/
+*.log
+probe-report.json
+inventory-report.json
+verification.json
+sonifications/
